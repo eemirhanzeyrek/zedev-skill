@@ -7,6 +7,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 export function safeReadJson(filePath) {
   try {
@@ -213,7 +214,7 @@ export function detectProject(rootDir) {
 }
 
 // CLI execution
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname);
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 if (isMain) {
   const args = process.argv.slice(2);
   const jsonFlag = args.includes("--json");

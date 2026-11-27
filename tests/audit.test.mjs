@@ -108,3 +108,48 @@ test("runAudit respects .zedevignore and passes clean web project with zero bloc
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("runAudit only flags .env when not excluded by .gitignore", () => {
+  const safeDir = makeTempProject({
+    ".gitignore": ".env\n",
+    ".env": "SECRET=local-only\n",
+  });
+  const unsafeDir = makeTempProject({
+    ".env": "SECRET=exposed\n",
+  });
+
+  try {
+    const safeReport = runAudit(safeDir);
+    assert.equal(safeReport.summary.blockers, 0);
+
+    const unsafeReport = runAudit(unsafeDir);
+    assert.equal(unsafeReport.summary.blockers, 1);
+    assert.ok(unsafeReport.findings[0].message.includes("not excluded by .gitignore"));
+  } finally {
+    fs.rmSync(safeDir, { recursive: true, force: true });
+    fs.rmSync(unsafeDir, { recursive: true, force: true });
+  }
+});
+
+test("runAudit checks Next.js App Router layout metadata and Flutter default description", () => {
+  const nextDir = makeTempProject({
+    "package.json": JSON.stringify({ dependencies: { next: "15.0.0", react: "19.0.0" } }),
+    "app/layout.tsx": `export default function RootLayout({ children }) { return <html><body>{children}</body></html>; }`,
+  });
+  const flutterDir = makeTempProject({
+    "pubspec.yaml": "name: my_app\ndescription: A new Flutter project.\n",
+  });
+
+  try {
+    const nextReport = runAudit(nextDir);
+    const nextMsgs = nextReport.findings.map((f) => f.message);
+    assert.ok(nextMsgs.some((m) => m.includes("does not export metadata")));
+    assert.ok(nextMsgs.some((m) => m.includes("Missing lang attribute")));
+
+    const flutterReport = runAudit(flutterDir);
+    assert.ok(flutterReport.findings.some((f) => f.message.includes("Default Flutter placeholder description")));
+  } finally {
+    fs.rmSync(nextDir, { recursive: true, force: true });
+    fs.rmSync(flutterDir, { recursive: true, force: true });
+  }
+});

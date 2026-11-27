@@ -7,6 +7,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { detectProject, safeReadJson } from "./detect-project.mjs";
 
 const SKIP_DIRS = new Set([
@@ -54,30 +55,34 @@ const SOURCE_EXTS = new Set([
 
 const MAX_FILE_BYTES = 512 * 1024; // 512 KB per source file
 
-function loadIgnorePatterns(root) {
-  const ignorePath = path.join(root, ".zedevignore");
-  if (!fs.existsSync(ignorePath)) return [];
+function loadPatternsFile(filePath) {
+  if (!fs.existsSync(filePath)) return [];
   try {
     return fs
-      .readFileSync(ignorePath, "utf8")
+      .readFileSync(filePath, "utf8")
       .split(/\r?\n/)
       .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith("#"));
+      .filter((line) => line && !line.startsWith("#") && !line.startsWith("!"));
   } catch {
     return [];
   }
 }
 
+function loadIgnorePatterns(root) {
+  return loadPatternsFile(path.join(root, ".zedevignore"));
+}
+
 function isIgnored(relPath, patterns) {
   if (!patterns.length) return false;
   const normalized = relPath.split(path.sep).join("/");
+  const base = path.basename(normalized);
   for (const pat of patterns) {
-    const clean = pat.replace(/\/+$/, "");
+    const clean = pat.replace(/^\/+/, "").replace(/\/+$/, "");
     if (!clean) continue;
-    if (normalized === clean || normalized.startsWith(`${clean}/`)) return true;
+    if (normalized === clean || base === clean || normalized.startsWith(`${clean}/`)) return true;
     if (clean.includes("*")) {
       const escaped = clean.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
-      if (new RegExp(`^${escaped}$`).test(normalized) || new RegExp(`(^|/)${escaped}$`).test(normalized)) {
+      if (new RegExp(`^${escaped}$`).test(normalized) || new RegExp(`^${escaped}$`).test(base)) {
         return true;
       }
     }
@@ -136,19 +141,23 @@ export function runAudit(rootDir) {
     findings.push({ severity, category, message, file, line, fix });
   };
 
-  // 1. Committed sensitive files check
+  // 1. Committed / unignored sensitive files check
+  const gitignorePatterns = loadPatternsFile(path.join(root, ".gitignore"));
   const sensitiveFileRegex = /^(\.env(\..+)?|.*\.(p12|p8|jks|keystore|mobileprovision|pem|key))$/i;
   for (const f of files) {
     const base = path.basename(f);
+    const rPath = rel(root, f);
     if (sensitiveFileRegex.test(base) && !base.endsWith(".example") && !base.endsWith(".sample")) {
-      add(
-        "BLOCKER",
-        "security",
-        `Sensitive file present in repository tree: ${base}`,
-        rel(root, f),
-        null,
-        "Ensure this file is gitignored and never committed to source control."
-      );
+      if (!isIgnored(rPath, gitignorePatterns)) {
+        add(
+          "BLOCKER",
+          "security",
+          `Sensitive file '${base}' is not excluded by .gitignore`,
+          rPath,
+          null,
+          "Add this file pattern to .gitignore and ensure it is never committed to source control."
+        );
+      }
     }
   }
 
@@ -557,6 +566,22 @@ export function runAudit(rootDir) {
     }
   }
 
+  // 5.5. Flutter pubspec.yaml check
+  if (platforms.has("flutter")) {
+    const pubspecPath = path.join(root, "pubspec.yaml");
+    const pubspecContent = readTextSafe(pubspecPath);
+    if (pubspecContent && /description:\s*["']?A new Flutter project\.?["']?/i.test(pubspecContent)) {
+      add(
+        "WARNING",
+        "completeness",
+        'Default Flutter placeholder description ("A new Flutter project.") found in pubspec.yaml',
+        "pubspec.yaml",
+        null,
+        "Replace the default Flutter description with a real description of your application."
+      );
+    }
+  }
+
   // 6. Web launch checks
   if (platforms.has("web")) {
     const robotsFile = files.find((f) => /^robots\.(txt|ts|js)$/i.test(path.basename(f)));
@@ -592,6 +617,18 @@ export function runAudit(rootDir) {
       }
       if (!/<meta[^>]+property=["']og:image["']/i.test(htmlContent)) {
         add("POLISH", "web-launch", 'Missing Open Graph <meta property="og:image"> in index.html', rHtml, null, "Add an absolute 1200x630 og:image URL for crisp social link previews.");
+      }
+    } else if (detection.frameworks.includes("Next.js")) {
+      const nextLayout = files.find((f) => /(^|\/)(src\/)?app\/layout\.(tsx|jsx|ts|js)$/i.test(rel(root, f)));
+      if (nextLayout) {
+        const layoutContent = readTextSafe(nextLayout) || "";
+        const rLayout = rel(root, nextLayout);
+        if (!/\b(export\s+const\s+metadata|export\s+(?:async\s+)?function\s+generateMetadata)\b/.test(layoutContent)) {
+          add("WARNING", "web-launch", "Next.js root layout does not export metadata or generateMetadata", rLayout, null, "Export a Next.js Metadata object (title, description, openGraph) in your root layout.");
+        }
+        if (/<html(?![^>]*\blang\s*=)/i.test(layoutContent)) {
+          add("WARNING", "web-launch", "Missing lang attribute on <html> in Next.js root layout", rLayout, null, 'Add lang="en" (or your primary locale) to <html>.');
+        }
       }
     }
 
@@ -644,7 +681,7 @@ export function formatMarkdownReport(report) {
 }
 
 // CLI execution
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname);
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 if (isMain) {
   const args = process.argv.slice(2);
   const jsonFlag = args.includes("--json");

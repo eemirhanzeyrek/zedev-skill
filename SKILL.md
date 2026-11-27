@@ -45,6 +45,7 @@ Run the automated scanner first to get deterministic, file-level findings:
 
 ```bash
 node <skill-dir>/scripts/preflight-audit.mjs [project-root]
+# Optional structured output: --json or --markdown
 ```
 
 Then read only the checklists matching the detected platform(s):
