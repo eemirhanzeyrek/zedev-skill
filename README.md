@@ -143,6 +143,7 @@ src/demo/
 zedev-skill/
 ├── SKILL.md                        # Core router & execution rules (Agent Skills spec)
 ├── README.md                       # Documentation
+├── CHANGELOG.md                    # Release history (Keep a Changelog)
 ├── LICENSE                         # MIT License
 ├── .gitignore                      # Secret, OS, IDE & build artifact exclusions
 ├── install.sh                      # Multi-agent installer & uninstaller
