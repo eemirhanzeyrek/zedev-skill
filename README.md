@@ -29,7 +29,7 @@
 Clone the repository and run `./install.sh`:
 
 ```bash
-git clone https://github.com/<your-username>/zedev-skill.git
+git clone https://github.com/eemirhanzeyrek/zedev-skill.git
 cd zedev-skill
 chmod +x install.sh
 ```
@@ -120,7 +120,7 @@ zedev-skill/
 
 ## License
 
-zedev-skill is available under the MIT license. See the LICENSE file for more info.
+zedev-skill is available under the MIT license. See the [LICENSE](LICENSE) file for more info.
 
 ## Authors
 
