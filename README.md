@@ -120,4 +120,8 @@ zedev-skill/
 
 ## License
 
-MIT
+zedev-skill is available under the MIT license. See the LICENSE file for more info.
+
+## Authors
+
+[@eemirhanzeyrek](https://github.com/eemirhanzeyrek)
