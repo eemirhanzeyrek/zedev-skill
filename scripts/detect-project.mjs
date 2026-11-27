@@ -201,6 +201,7 @@ export function detectProject(rootDir) {
     recommendedReferences: {
       design: [
         "references/design/universal-taste.md",
+        "references/design/component-recipes.md",
         "references/design/ui-states-and-a11y.md",
         "references/design/platform-ux.md",
       ],

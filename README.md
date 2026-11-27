@@ -14,8 +14,8 @@
 `zedev-skill` uses **progressive disclosure** and **automatic stack detection** so your agent only loads the rules relevant to your project (iOS, Android, React Native / Expo, Flutter, Web/SaaS, Desktop, or Backend):
 
 1. **Design Mode (Universal Taste & UX)**
-   - Enforces strong visual hierarchy, disciplined spacing (4/8px), balanced typography, semantic color tokens, and dark/light mode parity.
-   - Eliminates generic "AI template" clichés with concrete Do / Don't examples.
+   - Enforces strong visual hierarchy, disciplined spacing (4/8px), proven font pairings, neutral light/dark surface ladders, and a 5-second visual self-audit.
+   - Provides concrete component recipes (navigation, heroes, cards, KPI dashboards, data tables, paywalls, forms, modals) and eliminates generic "AI template" clichés.
    - Ensures all 5 real UI states (default, loading, empty, error, offline), accessibility (WCAG AA, touch targets, screen readers), and platform-native conventions (iOS HIG, Material 3, Web).
 2. **Engineering Mode (Craft & Security)**
    - Enforces cohesive architecture, explicit error boundaries, main-thread performance, and resource cleanup.
@@ -152,7 +152,8 @@ zedev-skill/
 │       └── ci.yml                  # Automated Node test & installer verification CI
 ├── references/
 │   ├── design/
-│   │   ├── universal-taste.md      # Visual hierarchy, typography, color, Do/Don't rules
+│   │   ├── universal-taste.md      # Visual hierarchy, font/surface ladders, 5-sec craft audit
+│   │   ├── component-recipes.md    # Concrete recipes for nav, hero, cards, tables, paywalls, modals
 │   │   ├── ui-states-and-a11y.md   # 5 UI states, forms, responsiveness, WCAG accessibility
 │   │   └── platform-ux.md          # iOS HIG, Material 3, Web & Desktop conventions
 │   ├── engineering/

@@ -31,7 +31,8 @@ Use the detected platforms (`ios`, `android`, `react-native`, `expo`, `flutter`,
 
 ### Mode 1: Design (Taste & UX)
 Read these before designing or modifying UI:
-- Universal visual craft & anti-cliché rules: `references/design/universal-taste.md`
+- Universal visual craft, typography/color ladders & anti-cliché rules: `references/design/universal-taste.md`
+- Concrete component composition recipes (nav, hero, cards, tables, paywalls, modals): `references/design/component-recipes.md`
 - Complete UI states, responsiveness & accessibility: `references/design/ui-states-and-a11y.md`
 - Platform-native UX conventions (iOS HIG, Material 3, Web): `references/design/platform-ux.md`
 

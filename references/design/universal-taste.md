@@ -22,6 +22,10 @@ Apply these standards to every UI—mobile, web, or desktop—so the product fee
   - Headings: tighter line-height (`1.1–1.25`) and slightly tighter letter-spacing (`-0.01em` to `-0.03em`) on large display text.
   - Tabular numbers (`font-variant-numeric: tabular-nums`) for prices, counters, timers, tables, and metrics so digits never jitter.
 - **No all-caps abuse**: Reserve uppercase for short micro-labels (11–12px with `+0.04em` to `+0.08em` tracking).
+- **High-craft font pairings** (pick one cohesive system, never mix 3+ families):
+  - *Native Mobile*: **SF Pro** (iOS) / **Roboto** or **Google Sans** (Android) — system fonts render sharpest, support Dynamic Type natively, and feel immediately trustworthy.
+  - *Modern Product / SaaS (Web)*: **Geist** or **Inter** (UI + Headings) paired with **Geist Mono** / **JetBrains Mono** (code, IDs, metrics).
+  - *Editorial / Brand-Forward (Web)*: **Instrument Serif** or **Newsreader** (Display headings) paired with **Inter** or **Plus Jakarta Sans** (clean UI body).
 
 ---
 
@@ -32,8 +36,10 @@ Apply these standards to every UI—mobile, web, or desktop—so the product fee
   - ~30% secondary surfaces, text hierarchy, borders
   - ~10% primary brand accent reserved for interactive focus and primary CTAs
 - **Semantic tokens only**: Define colors by role (`surface`, `surface-elevated`, `text-primary`, `text-secondary`, `border-subtle`, `accent`, `danger`, `warning`, `success`), never scattered raw hex literals.
+- **Neutral surface ladders (reference baseline)**:
+  - *Light Mode*: Canvas `#FFFFFF` or `#FAFAFB`, subtle secondary `#F4F5F7`, hairline border `rgba(0, 0, 0, 0.08)`, primary text `#111318`, secondary text `#5C6370`.
+  - *Dark Mode*: Canvas `#0B0D10`, elevated surface `#13171D`, floating popover `#1B2028`, hairline border `rgba(255, 255, 255, 0.09)`, primary text `#F3F4F6`, secondary text `#9CA3AF`.
 - **Dark & Light mode parity**:
-  - In dark mode, avoid pure `#000000` paired with pure `#FFFFFF` everywhere; use deep charcoal surfaces (`#0B0D10`–`#14171C`) with elevated layers slightly lighter (`#181C22`, `#20252E`) and crisp off-white text (`#F3F4F6`).
   - Desaturate vibrant accents slightly in dark mode so they don't vibrate against dark surfaces.
 - **Contrast non-negotiables**: At least **4.5:1** for body text and **3:1** for large text, icons, and input borders (WCAG AA).
 
@@ -70,4 +76,16 @@ Explicitly avoid these low-craft patterns unless the user specifically asks for 
 | **Action Hierarchy** | Three filled solid buttons side-by-side (`Save`, `Share`, `Delete`). | One solid primary (`Save`), one subtle secondary (`Share`), destructive action separated (`Delete`). |
 | **Paywall Pricing** | Tiny gray `"$59.99/year"` under giant `"$4.99/mo"`. | Clear billed price (`$59.99 / year`) as the primary figure, with secondary per-month context and visible `Restore Purchases`. |
 | **Card Surfaces** | Heavy drop shadow + glowing gradient border + 4 colored badges per card. | Crisp 1px subtle border or light tonal elevation, generous internal padding (`16–24px`), max 1 status indicator. |
+
+---
+
+## 7. The 5-Second Visual Craft Self-Audit
+
+Before finalizing any UI, verify all five checks:
+1. **Squint Test**: If you squint at the screen, does one unmistakable primary focal point/CTA stand out immediately?
+2. **Density Cap**: Does every card stay within 3–4 data points, with clear whitespace separating unrelated sections?
+3. **Alignment & Optical Rhythm**: Are edges aligned to a consistent grid and spacing multiples of 4/8px?
+4. **Zero Slop**: Are all generic gradients, neon glows, filler marketing buzzwords, and unstyled defaults eliminated?
+5. **Real-World Stress**: Does it still look composed with a 40-character username, an empty list, dark mode enabled, and a 375px viewport?
+
 

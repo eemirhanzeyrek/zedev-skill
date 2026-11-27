@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-27
+
+### Added
+- **Component Design Recipes (`references/design/component-recipes.md`)**: Concrete, opinionated layout and density rules for Navigation (Topbar, Sidebar, Mobile Tab Bar), Hero sections, Cards, KPI Dashboards & Data Tables, Store-safe Paywalls, Forms, Settings, and Modals/Sheets.
+- **Typography Pairings, Neutral Surface Ladders & 5-Second Visual Craft Self-Audit** in `references/design/universal-taste.md` to ensure consistent, high-craft UI across light and dark modes.
+- Wired `component-recipes.md` into `SKILL.md` Design Mode progressive disclosure and updated `README.md`.
+
 ## [1.0.1] - 2026-11-27
 
 ### Fixed
@@ -31,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Multi-Agent Installer (`install.sh`)**: Global and `--project` install/uninstall support for Claude Code, Codex, Antigravity, and GitHub Copilot.
 - **Tests & CI (`tests/audit.test.mjs`, `.github/workflows/ci.yml`)**: Zero-dependency `node:test` verification suite and automated GitHub Actions CI.
 
-[Unreleased]: https://github.com/eemirhanzeyrek/zedev-skill/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/eemirhanzeyrek/zedev-skill/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/eemirhanzeyrek/zedev-skill/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/eemirhanzeyrek/zedev-skill/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/eemirhanzeyrek/zedev-skill/releases/tag/v1.0.0
