@@ -5,6 +5,7 @@ SKILL_NAME="zedev-skill"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 SCOPE="global"
+ACTION="install"
 PROJECT_DIR="$(pwd)"
 TARGETS=()
 
@@ -12,24 +13,26 @@ usage() {
   cat <<EOF
 Usage: ./install.sh [OPTIONS] [TARGETS...]
 
-Install ${SKILL_NAME} into one or more AI coding agents.
+Install or uninstall ${SKILL_NAME} for one or more AI coding agents.
 
 Targets:
   claude        Claude Code (~/.claude/skills or ./.claude/skills)
   codex         OpenAI Codex (~/.agents/skills or ./.agents/skills)
   antigravity   Google Antigravity (~/.gemini/antigravity/skills or ./.agents/skills)
   copilot       GitHub Copilot (~/.copilot/skills or ./.github/skills)
-  all           Install for all supported agents (default if no target given)
+  all           All supported agents (default if no target given)
 
 Options:
-  --global            Install into user home skill directories (default)
-  --project [DIR]     Install into a specific project directory (defaults to cwd)
+  --global            Target user home skill directories (default)
+  --project [DIR]     Target a specific project directory (defaults to cwd)
+  --uninstall         Remove ${SKILL_NAME} from the selected targets
   -h, --help          Show this help message
 
 Examples:
   ./install.sh all
   ./install.sh claude codex antigravity
   ./install.sh --project /path/to/my-app copilot claude
+  ./install.sh --uninstall all
 EOF
 }
 
@@ -47,6 +50,10 @@ while [[ $# -gt 0 ]]; do
       else
         shift
       fi
+      ;;
+    --uninstall)
+      ACTION="uninstall"
+      shift
       ;;
     -h|--help)
       usage
@@ -93,6 +100,18 @@ install_to_dir() {
   echo "Installed ${SKILL_NAME} for ${label} -> ${dest}"
 }
 
+uninstall_from_dir() {
+  local label="$1"
+  local dest="$2"
+
+  if [[ -d "$dest" ]]; then
+    rm -rf "${dest:?}"
+    echo "Uninstalled ${SKILL_NAME} for ${label} -> ${dest}"
+  else
+    echo "Not installed for ${label} (${dest})"
+  fi
+}
+
 SEEN_DIRS=""
 for target in "${RESOLVED_TARGETS[@]}"; do
   case "$target" in
@@ -127,12 +146,21 @@ for target in "${RESOLVED_TARGETS[@]}"; do
   esac
 
   if [[ "$SEEN_DIRS" == *"|$DEST|"* ]]; then
-    echo "Already installed ${SKILL_NAME} for ${target} (shared path: ${DEST})"
+    echo "Skipped duplicate path for ${target} (shared path: ${DEST})"
     continue
   fi
   SEEN_DIRS="${SEEN_DIRS}|$DEST|"
-  install_to_dir "$target" "$DEST"
+
+  if [[ "$ACTION" == "uninstall" ]]; then
+    uninstall_from_dir "$target" "$DEST"
+  else
+    install_to_dir "$target" "$DEST"
+  fi
 done
 
 echo ""
-echo "Done! Restart or start a new session in your agent to load ${SKILL_NAME}."
+if [[ "$ACTION" == "uninstall" ]]; then
+  echo "Done! ${SKILL_NAME} has been removed from the selected targets."
+else
+  echo "Done! Restart or start a new session in your agent to load ${SKILL_NAME}."
+fi

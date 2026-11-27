@@ -52,3 +52,18 @@ Every data-driven screen or component must handle all applicable states explicit
   - Use semantic HTML (`<button>`, `<nav>`, `<main>`, `<header>`, `<label>`, heading hierarchy `h1` → `h2` → `h3`) rather than clickable `<div>`s.
 - **Color is never the sole indicator**: Pair error/status colors with icons or text labels for color-blind users.
 - **Keyboard traps**: Modals and drawers must trap focus while open, close on `Escape`, and return focus to the triggering element on close.
+
+---
+
+## 5. Concrete State Copy Examples
+
+- **Empty State**
+  - *Don't*: `"No data found."`
+  - *Do*: `"No invoices yet"` + `"Create your first invoice to start tracking payments."` + `[New Invoice]` button.
+- **Error State**
+  - *Don't*: `"Error 500: TypeError: Cannot read properties of undefined"`
+  - *Do*: `"We couldn't load your projects. Check your connection and try again."` + `[Retry]` button.
+- **Destructive Confirmation**
+  - *Don't*: `"Are you sure? [Cancel] [OK]"`
+  - *Do*: `"Delete account permanently? All saved projects and billing history will be erased."` + `[Cancel]` `[Delete Account]`.
+

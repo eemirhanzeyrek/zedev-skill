@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check script syntax
+        run: |
+          node --check scripts/detect-project.mjs
+          node --check scripts/preflight-audit.mjs
+          bash -n install.sh
+
+      - name: Run zero-dependency test suite
+        run: node --test tests/audit.test.mjs
+
+      - name: Test install and uninstall flow
+        run: |
+          TMP_DIR="$(mktemp -d)"
+          ./install.sh --project "$TMP_DIR" all
+          test -f "$TMP_DIR/.claude/skills/zedev-skill/SKILL.md"
+          test -f "$TMP_DIR/.agents/skills/zedev-skill/SKILL.md"
+          test -f "$TMP_DIR/.github/skills/zedev-skill/SKILL.md"
+          ./install.sh --uninstall --project "$TMP_DIR" all
+          test ! -d "$TMP_DIR/.claude/skills/zedev-skill"
+          test ! -d "$TMP_DIR/.agents/skills/zedev-skill"
+          test ! -d "$TMP_DIR/.github/skills/zedev-skill"
+          rm -rf "$TMP_DIR"

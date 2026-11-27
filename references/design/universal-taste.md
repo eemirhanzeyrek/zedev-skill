@@ -59,3 +59,15 @@ Explicitly avoid these low-craft patterns unless the user specifically asks for 
   - UI transitions (modals, sheets, tabs, drawers): `200–300ms`
   - Use natural deceleration easing (`cubic-bezier(0.2, 0.8, 0.2, 1)` or platform spring physics).
 - **Respect reduced motion**: Honor `prefers-reduced-motion` (web) and system Reduce Motion settings (iOS/Android) by replacing spatial movement with subtle opacity fades.
+
+---
+
+## 6. Concrete Do / Don't Reference
+
+| Area | Don't (Generic / Low-Craft) | Do (Intentional / Production) |
+| :--- | :--- | :--- |
+| **Hero / CTA Copy** | *"Supercharge your workflow with seamless AI synergy."* | *"Audit your app for App Store rejections in 10 seconds."* |
+| **Action Hierarchy** | Three filled solid buttons side-by-side (`Save`, `Share`, `Delete`). | One solid primary (`Save`), one subtle secondary (`Share`), destructive action separated (`Delete`). |
+| **Paywall Pricing** | Tiny gray `"$59.99/year"` under giant `"$4.99/mo"`. | Clear billed price (`$59.99 / year`) as the primary figure, with secondary per-month context and visible `Restore Purchases`. |
+| **Card Surfaces** | Heavy drop shadow + glowing gradient border + 4 colored badges per card. | Crisp 1px subtle border or light tonal elevation, generous internal padding (`16–24px`), max 1 status indicator. |
+

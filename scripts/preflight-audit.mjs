@@ -54,7 +54,38 @@ const SOURCE_EXTS = new Set([
 
 const MAX_FILE_BYTES = 512 * 1024; // 512 KB per source file
 
-function walkFiles(dir, collector = []) {
+function loadIgnorePatterns(root) {
+  const ignorePath = path.join(root, ".zedevignore");
+  if (!fs.existsSync(ignorePath)) return [];
+  try {
+    return fs
+      .readFileSync(ignorePath, "utf8")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("#"));
+  } catch {
+    return [];
+  }
+}
+
+function isIgnored(relPath, patterns) {
+  if (!patterns.length) return false;
+  const normalized = relPath.split(path.sep).join("/");
+  for (const pat of patterns) {
+    const clean = pat.replace(/\/+$/, "");
+    if (!clean) continue;
+    if (normalized === clean || normalized.startsWith(`${clean}/`)) return true;
+    if (clean.includes("*")) {
+      const escaped = clean.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+      if (new RegExp(`^${escaped}$`).test(normalized) || new RegExp(`(^|/)${escaped}$`).test(normalized)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function walkFiles(dir, root, ignorePatterns, collector = []) {
   let entries;
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -64,8 +95,10 @@ function walkFiles(dir, collector = []) {
   for (const entry of entries) {
     if (SKIP_DIRS.has(entry.name)) continue;
     const full = path.join(dir, entry.name);
+    const relPath = path.relative(root, full);
+    if (isIgnored(relPath, ignorePatterns)) continue;
     if (entry.isDirectory()) {
-      walkFiles(full, collector);
+      walkFiles(full, root, ignorePatterns, collector);
     } else if (entry.isFile()) {
       collector.push(full);
     }
@@ -91,11 +124,12 @@ function findLineNumber(content, index) {
   return content.slice(0, index).split("\n").length;
 }
 
-function runAudit(rootDir) {
+export function runAudit(rootDir) {
   const detection = detectProject(rootDir);
   const root = detection.root;
   const platforms = new Set(detection.platforms);
-  const files = walkFiles(root);
+  const ignorePatterns = loadIgnorePatterns(root);
+  const files = walkFiles(root, root, ignorePatterns);
   const findings = [];
 
   const add = (severity, category, message, file = null, line = null, fix = null) => {
@@ -313,7 +347,7 @@ function runAudit(rootDir) {
       }
     }
 
-    // Expo app.json checks for iOS
+    // Expo app.json deep checks for iOS
     const appJson = safeReadJson(path.join(root, "app.json"));
     if (appJson?.expo) {
       if (!appJson.expo.ios?.bundleIdentifier) {
@@ -325,6 +359,36 @@ function runAudit(rootDir) {
           null,
           "Set a unique reverse-DNS bundleIdentifier (e.g., com.company.appname) before building for iOS."
         );
+      }
+
+      if (appJson.expo.icon && !fs.existsSync(path.join(root, appJson.expo.icon))) {
+        add(
+          "BLOCKER",
+          "ios-app-store",
+          `Expo icon path '${appJson.expo.icon}' does not exist on disk`,
+          "app.json",
+          null,
+          "Provide a valid 1024x1024 PNG app icon (without transparency) at the configured path."
+        );
+      }
+
+      const expoPlist = appJson.expo.ios?.infoPlist;
+      if (expoPlist && typeof expoPlist === "object") {
+        for (const [key, val] of Object.entries(expoPlist)) {
+          if (/^NS[A-Za-z]+UsageDescription$/.test(key)) {
+            const desc = String(val || "").trim();
+            if (desc.length < 15 || /needs access|permission|todo|placeholder/i.test(desc)) {
+              add(
+                "BLOCKER",
+                "ios-app-store",
+                `Expo ios.infoPlist '${key}' has an empty or generic description ("${desc}")`,
+                "app.json",
+                null,
+                "Write a specific explanation of how the app uses this permission."
+              );
+            }
+          }
+        }
       }
     }
 
@@ -383,6 +447,23 @@ function runAudit(rootDir) {
           null,
           "Disable cleartext traffic in release builds and use HTTPS endpoints."
         );
+      }
+
+      // Android 12+ requires android:exported on components with <intent-filter>
+      const componentRegex = /<(activity|service|receiver)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
+      let compMatch;
+      while ((compMatch = componentRegex.exec(content)) !== null) {
+        const [, tagName, attrs, inner] = compMatch;
+        if (/<intent-filter\b/i.test(inner) && !/android:exported\s*=/i.test(attrs)) {
+          add(
+            "BLOCKER",
+            "google-play",
+            `<${tagName}> with <intent-filter> is missing android:exported attribute (Android 12+ requirement)`,
+            rPath,
+            findLineNumber(content, compMatch.index),
+            `Explicitly declare android:exported="true" (for launchers/deep links) or android:exported="false" on <${tagName}>.`
+          );
+        }
       }
 
       const highRiskPerms = [
@@ -482,12 +563,13 @@ function runAudit(rootDir) {
     const sitemapFile = files.find((f) => /^sitemap\.(xml|ts|js)$/i.test(path.basename(f)));
     const faviconFile = files.find((f) => /^(favicon\.|icon\.(svg|png|ico))/i.test(path.basename(f)));
     const notFoundFile = files.find((f) => /^(not-found|404)\.(tsx|jsx|ts|js|vue|svelte|astro|html)$/i.test(path.basename(f)));
+    const indexHtml = files.find((f) => path.basename(f) === "index.html");
 
     if (!robotsFile) {
       add("WARNING", "web-launch", "No robots.txt (or robots.ts) found", null, null, "Add robots.txt to control search engine indexing.");
     } else if (robotsFile.endsWith(".txt")) {
       const robotsContent = readTextSafe(robotsFile) || "";
-      if (/User-agent:\s*\*\s*\n\s*Disallow:\s*\/\s*($|\n)/i.test(robotsContent)) {
+      if (/User-agent:\s*\*\s*\r?\n\s*Disallow:\s*\/\s*($|\r?\n)/i.test(robotsContent)) {
         add(
           "BLOCKER",
           "web-launch",
@@ -496,6 +578,20 @@ function runAudit(rootDir) {
           null,
           "Allow indexing in production unless this site is intentionally private."
         );
+      }
+    }
+
+    if (indexHtml) {
+      const htmlContent = readTextSafe(indexHtml) || "";
+      const rHtml = rel(root, indexHtml);
+      if (/<html(?![^>]*\blang\s*=)/i.test(htmlContent)) {
+        add("WARNING", "web-launch", "Missing lang attribute on <html> element", rHtml, null, 'Add lang="en" (or your primary locale) to <html> for accessibility and SEO.');
+      }
+      if (!/<meta[^>]+name=["']description["']/i.test(htmlContent)) {
+        add("WARNING", "web-launch", 'Missing <meta name="description"> in index.html', rHtml, null, "Add a concise 120–160 character meta description.");
+      }
+      if (!/<meta[^>]+property=["']og:image["']/i.test(htmlContent)) {
+        add("POLISH", "web-launch", 'Missing Open Graph <meta property="og:image"> in index.html', rHtml, null, "Add an absolute 1200x630 og:image URL for crisp social link previews.");
       }
     }
 
@@ -522,16 +618,44 @@ function runAudit(rootDir) {
   return { detection, summary, findings };
 }
 
+export function formatMarkdownReport(report) {
+  const lines = [
+    `## zedev-skill Pre-Flight Audit`,
+    ``,
+    `- **Platforms:** ${report.detection.platforms.join(", ") || "none detected"}`,
+    `- **Frameworks:** ${report.detection.frameworks.join(", ") || "none detected"}`,
+    `- **Summary:** **${report.summary.blockers} BLOCKER** · **${report.summary.warnings} WARNING** · **${report.summary.polish} POLISH**`,
+    ``,
+  ];
+
+  if (report.findings.length === 0) {
+    lines.push("No static issues detected. Proceed with manual runtime & checklist verification.");
+    return lines.join("\n");
+  }
+
+  lines.push("| Severity | Category | Finding | Location |");
+  lines.push("| :--- | :--- | :--- | :--- |");
+  for (const f of report.findings) {
+    const loc = f.file ? `\`${f.file}${f.line ? `:${f.line}` : ""}\`` : "—";
+    lines.push(`| **${f.severity}** | \`${f.category}\` | ${f.message.replace(/\|/g, "\\|")} | ${loc} |`);
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
 // CLI execution
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname);
 if (isMain) {
   const args = process.argv.slice(2);
   const jsonFlag = args.includes("--json");
+  const mdFlag = args.includes("--markdown") || args.includes("--md");
   const targetDir = args.find((a) => !a.startsWith("-")) || process.cwd();
   const report = runAudit(targetDir);
 
   if (jsonFlag) {
     console.log(JSON.stringify(report, null, 2));
+  } else if (mdFlag) {
+    console.log(formatMarkdownReport(report));
   } else {
     console.log(`\n=== zedev-skill Pre-Flight Audit ===`);
     console.log(`Project:    ${report.detection.root}`);
